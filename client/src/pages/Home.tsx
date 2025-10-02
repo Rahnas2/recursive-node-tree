@@ -7,6 +7,7 @@ import AddForm from "../components/AddForm";
 import AddRootButton from "../components/AddRootButton";
 import { createNodeApi, deleteNodeApi, getAllNodes } from "../apis/nodeServices";
 import toast from "react-hot-toast";
+import TreeSkeleton from "../components/TreeSkeleton";
 
 
 
@@ -132,21 +133,20 @@ const Home = () => {
         }
     }
 
-
     // Handle Close Adding Root
     const handleCloseAddRoot = () => setIsAddingRoot(false)
 
     // Handle Open Adding Root
     const handleOpenAddRoot = () => setIsAddingRoot(true)
 
-    // const nestedNodes = buildTree(rootIds);
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
             <div className="max-w-4xl mx-auto py-12 px-4">
                 <Header />
 
-                {isLoading ? <div>loading...</div> :
+                {isLoading ? <div className="animate-pulse">
+                    <TreeSkeleton />
+                </div> :
                     <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/50">
                         {Object.keys(nodesMap).length === 0 && !isAddingRoot && (
                             <EmptyTree />
