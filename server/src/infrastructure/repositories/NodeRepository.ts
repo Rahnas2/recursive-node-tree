@@ -9,8 +9,8 @@ export class NodeRepository implements INodeRepository {
 
     async finNodeById(id: string): Promise<Node | null> {
         const node = await NodeModel.findById(id)
-        
-        if(!node) return null
+
+        if (!node) return null
 
         return { id: node._id.toString(), name: node.name, parentId: node.parentId?.toString() || null }
     }
@@ -31,32 +31,34 @@ export class NodeRepository implements INodeRepository {
     }
 
     async deleteNodeAndDescendants(id: string): Promise<string[]> {
-        const allNodes = await NodeModel.find()
-        const childrenMap = new Map<string, string[]>();
+        const objectId = new mongoose.Types.ObjectId(id);
 
-        allNodes.forEach((n: any) => {
-            const pid = n.parentId ? n.parentId.toString() : null;
+        const result = await NodeModel.aggregate([
+            { $match: { _id: objectId } },
+            {
+                $graphLookup: {
+                    from: "nodes",
+                    startWith: "$_id",
+                    connectFromField: "_id",
+                    connectToField: "parentId",
+                    as: "descendants"
+                }
+            },
+            {
+                $project: {
+                    allIds: {
+                        $concatArrays: [["$_id"], "$descendants._id"]
+                    }
+                }
+            }
+        ]);
 
-            if (!childrenMap.has(pid)) childrenMap.set(pid, []);
-
-            childrenMap.get(pid)!.push(n._id.toString());
-        });
-
-        const toDelete = new Set<string>();
-        const stack = [id];
-
-        while (stack.length) {
-            const cur = stack.pop()!;
-            if (toDelete.has(cur)) continue;
-            toDelete.add(cur);
-            const children = childrenMap.get(cur);
-            if (children) stack.push(...children);
-        }
+        const idsToDelete = result[0]?.allIds || [];
 
         await NodeModel.deleteMany({
-            _id: { $in: Array.from(toDelete).map(i => new mongoose.Types.ObjectId(i)) }
+            _id: { $in: idsToDelete }
         });
 
-        return Array.from(toDelete);
+        return idsToDelete.map((id: any) => id.toString());
     }
 }

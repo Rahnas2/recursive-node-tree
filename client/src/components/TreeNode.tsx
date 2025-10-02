@@ -73,18 +73,19 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, nodesMap, onToggle, onAdd, on
                 <div className={`ml-8 mt-1 space-y-1 ${level >= 0 ? 'pl-4 border-l-2 ' + indentColor : ''}`}>
                     {node.childrenIds?.map((childId) => {
                         const childNode = nodesMap[childId];
-                        if (!childNode) return null;
-                        return (
-                            <TreeNode
-                                key={childId}
-                                node={childNode}
-                                nodesMap={nodesMap}
-                                onToggle={onToggle}
-                                onAdd={onAdd}
-                                onDelete={onDelete}
-                                level={level + 1}
-                            />
-                        );
+                        if (childNode) {
+                            return (
+                                <TreeNode
+                                    key={childId}
+                                    node={childNode}
+                                    nodesMap={nodesMap}
+                                    onToggle={onToggle}
+                                    onAdd={onAdd}
+                                    onDelete={onDelete}
+                                    level={level + 1}
+                                />
+                            );
+                        }
                     })}
                 </div>
             )}
