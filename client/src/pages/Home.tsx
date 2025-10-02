@@ -116,30 +116,32 @@ const Home = () => {
             <div className="max-w-4xl mx-auto py-12 px-4">
                 <Header />
 
-                <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/50">
-                    {nodes.length === 0 && !isAddingRoot && (
-                        <EmptyTree />
-                    )}
-                    <div className="space-y-2">
-                        {nodes.map((node) => (
-                            <TreeNode
-                                key={node.id}
-                                node={node}
-                                onToggle={toggleNode}
-                                onAdd={handleAddNode}
-                                onDelete={handleDeleteNode}
-                                level={0}
-                            />
-                        ))}
+                {isLoading ? <div>loading...</div> :
+                    <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/50">
+                        {nodes.length === 0 && !isAddingRoot && (
+                            <EmptyTree />
+                        )}
+                        <div className="space-y-2">
+                            {nodes.map((node) => (
+                                <TreeNode
+                                    key={node.id}
+                                    node={node}
+                                    onToggle={toggleNode}
+                                    onAdd={handleAddNode}
+                                    onDelete={handleDeleteNode}
+                                    level={0}
+                                />
+                            ))}
+                        </div>
+
+                        {isAddingRoot ? (
+                            <AddForm parentId={null} onClose={handleCloseAddRoot} onSubmit={handleAddNode} />
+                        ) : (
+                            <AddRootButton onOpen={handleOpenAddRoot} />
+                        )}
+
                     </div>
-
-                    {isAddingRoot ? (
-                        <AddForm parentId={null} onClose={handleCloseAddRoot} onSubmit={handleAddNode} />
-                    ) : (
-                        <AddRootButton onOpen={handleOpenAddRoot} />
-                    )}
-
-                </div>
+                }
 
             </div>
         </div>
