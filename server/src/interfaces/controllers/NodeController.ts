@@ -5,11 +5,13 @@ import { CreateNodeInteractor } from "../../application/interactors/CreateNodeIn
 import { GetTreeInteractor } from "../../application/interactors/GetTreeInteractor";
 import { DeleteNodeInteractor } from "../../application/interactors/DeleteNodeInteractor";
 import { HttpStatus } from '../enums/HttpStatus';
+import { GetAllNodesInteractor } from "../../application/interactors/GetAllNodesInteractor";
 
 @injectable()
 export class NodeController {
     constructor(
         @inject(TYPES.CreateNodeInteractor) private createNode: CreateNodeInteractor,
+        @inject(TYPES.GetAllNodesInteractor) private getAllNode: GetAllNodesInteractor,
         @inject(TYPES.GetTreeInteractor) private getTree: GetTreeInteractor,
         @inject(TYPES.DeleteNodeInteractor) private deleteNode: DeleteNodeInteractor
     ) { }
@@ -21,6 +23,15 @@ export class NodeController {
             res.status(HttpStatus.CREATED).json({ success: true, node });
         } catch (err: any) {
             next(err)
+        }
+    }
+
+    getAllNodes = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const nodes = await this.getAllNode.execute()
+            res.json({success: true, nodes})
+        } catch (error) {
+            
         }
     }
 

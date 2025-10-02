@@ -6,13 +6,14 @@ import AddForm from "./AddForm";
 
 interface TreeNodeProps {
     node: TreeNodeType;
+    nodesMap: { [id: string]: TreeNodeType };
     onToggle: (nodeId: string) => void;
     onAdd: (parentId: string | null, name: string) => void;
     onDelete: (nodeId: string) => void;
     level: number;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, onToggle, onAdd, onDelete, level }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, nodesMap, onToggle, onAdd, onDelete, level }) => {
 
     const [isAdding, setIsAdding] = useState(false);
 
@@ -21,7 +22,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onToggle, onAdd, onDelete, le
         setIsAdding(false)
     }
 
-    const hasChildren = node.children.length > 0;
+    const length = node?.childrenIds?.length
+    const hasChildren = length
     const indentColor = level % 3 === 0 ? 'border-blue-200' : level % 3 === 1 ? 'border-emerald-200' : 'border-amber-200'
 
     return (
@@ -64,21 +66,26 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onToggle, onAdd, onDelete, le
             </div>
 
             {isAdding && (
-                <AddForm parentId={node.id} onClose={handleClose} onSubmit={onAdd}/>
+                <AddForm parentId={node.id} onClose={handleClose} onSubmit={onAdd} />
             )}
 
             {node.isExpanded && hasChildren && (
                 <div className={`ml-8 mt-1 space-y-1 ${level >= 0 ? 'pl-4 border-l-2 ' + indentColor : ''}`}>
-                    {node.children.map((child) => (
-                        <TreeNode
-                            key={child.id}
-                            node={child}
-                            onToggle={onToggle}
-                            onAdd={onAdd}
-                            onDelete={onDelete}
-                            level={level + 1}
-                        />
-                    ))}
+                    {node.childrenIds?.map((childId) => {
+                        const childNode = nodesMap[childId];
+                        if (!childNode) return null;
+                        return (
+                            <TreeNode
+                                key={childId}
+                                node={childNode}
+                                nodesMap={nodesMap}
+                                onToggle={onToggle}
+                                onAdd={onAdd}
+                                onDelete={onDelete}
+                                level={level + 1}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>

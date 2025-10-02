@@ -8,8 +8,10 @@ const controller = container.get<NodeController>(TYPES.NodeController);
 
 router.route('/')
 .post(controller.create)
-.get(controller.getTreeHandler)
+.get(controller.getAllNodes)
 
+router.route('/nested')
+.post(controller.getTreeHandler)
 router.route('/:id')
 .delete(controller.delete) 
 

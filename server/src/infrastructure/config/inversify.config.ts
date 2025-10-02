@@ -10,6 +10,7 @@ import { GetTreeInteractor } from "../../application/interactors/GetTreeInteract
 import { DeleteNodeInteractor } from "../../application/interactors/DeleteNodeInteractor";
 
 import { NodeController } from "../../interfaces/controllers/NodeController";
+import { GetAllNodesInteractor } from "../../application/interactors/GetAllNodesInteractor";
 
 const container = new Container();
 
@@ -18,6 +19,7 @@ container.bind<INodeRepository>(TYPES.INodeRepository).to(NodeRepository);
 
 // Interactors
 container.bind<CreateNodeInteractor>(TYPES.CreateNodeInteractor).to(CreateNodeInteractor);
+container.bind<GetAllNodesInteractor>(TYPES.GetAllNodesInteractor).to(GetAllNodesInteractor)
 container.bind<GetTreeInteractor>(TYPES.GetTreeInteractor).to(GetTreeInteractor);
 container.bind<DeleteNodeInteractor>(TYPES.DeleteNodeInteractor).to(DeleteNodeInteractor);
 

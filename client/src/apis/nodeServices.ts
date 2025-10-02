@@ -5,8 +5,13 @@ export const createNodeApi = async(name: string, parentId: string | null) => {
         return response.data
 }
 
-export const getTreeApi = async() => {
+export const getAllNodes = async() => {
     const response = await axiosInstance.get('/api/nodes')
+    return response.data
+}
+
+export const getTreeApi = async() => {
+    const response = await axiosInstance.get('/api/nodes/nested')
     return response.data
 }
 

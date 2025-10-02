@@ -1,27 +1,52 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header"
-import type { TreeNodeType } from "../types/TreeNodeType";
+import type { Node, TreeNodeType } from "../types/TreeNodeType";
 import EmptyTree from "../components/EmptyTree";
 import TreeNode from "../components/TreeNode";
 import AddForm from "../components/AddForm";
 import AddRootButton from "../components/AddRootButton";
-import { createNodeApi, deleteNodeApi, getTreeApi } from "../apis/nodeServices";
+import { createNodeApi, deleteNodeApi, getAllNodes } from "../apis/nodeServices";
 import toast from "react-hot-toast";
 
 
 
 const Home = () => {
-    const [nodes, setNodes] = useState<TreeNodeType[]>([]);
-    const [isAddingRoot, setIsAddingRoot] = useState(false);
+    const [nodesMap, setNodesMap] = useState<{ [id: string]: TreeNodeType }>({});
+    const [rootIds, setRootIds] = useState<string[]>([]);
+
+    const [isAddingRoot, setIsAddingRoot] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
     useEffect(() => {
         const fetchTree = async () => {
             try {
                 setIsLoading(true)
-                const result = await getTreeApi()
-                setNodes(result.tree)
+                const result = await getAllNodes()
+                const map: { [id: string]: TreeNodeType } = {};
+                const roots: string[] = [];
+                console.log('result ', result.nodes)
+
+                result.nodes.forEach((n: Node) => {
+                    map[n.id] = { ...n, childrenIds: [], isExpanded: false };
+                });
+
+                result.nodes.forEach((n: Node) => {
+                    if (n.parentId) {
+                        const parentNode = map[n.parentId];
+                        if (parentNode) {
+                            parentNode.childrenIds!.push(n.id);
+                        } else {
+                            console.warn(`Parent node not found for node ${n.id}`);
+                        }
+                    } else {
+                        roots.push(n.id);
+                    }
+                });
+
+                setNodesMap(map);
+                setRootIds(roots);
             } catch (error: any) {
+                console.error('error fetching data ', error)
                 toast.error(error?.response?.data?.message || 'something went wrong')
             } finally {
                 setIsLoading(false)
@@ -31,85 +56,90 @@ const Home = () => {
         fetchTree()
     }, [])
 
-
-    // Toggle Node
-
-    const toggleNodeRecursively = (nodes: TreeNodeType[], nodeId: string): TreeNodeType[] => {
-        return nodes.map((node) =>
-            node.id === nodeId
-                ? { ...node, isExpanded: !node.isExpanded }
-                : { ...node, children: toggleNodeRecursively(node.children || [], nodeId) }
-        );
-    };
-
     const toggleNode = (nodeId: string) => {
-        setNodes((prevNodes) => toggleNodeRecursively(prevNodes, nodeId));
-    };
-
-    // Handle Close Adding Root
-    const handleCloseAddRoot = () => {
-        setIsAddingRoot(false)
-    }
-
-    // Handle Open Adding Root
-    const handleOpenAddRoot = () => {
-        setIsAddingRoot(true)
-    }
-
-    const addNodeRecursively = (nodes: TreeNodeType[], parentId: string | null, newNode: TreeNodeType): TreeNodeType[] => {
-        if (parentId === null) {
-            return [...nodes, { ...newNode, children: [], isExpanded: false }];
-        }
-
-        return nodes.map((node) => {
-            if (node.id === parentId) {
-                return {
-                    ...node,
-                    isExpanded: true,
-                    children: [...(node.children || []), { ...newNode, children: [], isExpanded: false }],
-                };
-            }
-            return {
-                ...node,
-                children: addNodeRecursively(node.children || [], parentId, newNode),
-            };
-        });
+        setNodesMap(prev => ({
+            ...prev,
+            [nodeId]: {
+                ...prev[nodeId],
+                isExpanded: !prev[nodeId].isExpanded,
+            },
+        }));
     };
 
 
     const handleAddNode = async (parentId: string | null, name: string) => {
         try {
             const result = await createNodeApi(name, parentId)
-            const newNode = result.node;
+            const newNode: TreeNodeType = { ...result.node, childrenIds: [], isExpanded: false }
 
-            setNodes((prev) => addNodeRecursively(prev, parentId, newNode));
+            if (parentId) {
+                // Add child node
+                setNodesMap(prev => ({
+                    ...prev,
+                    [newNode.id]: newNode,
+                    [parentId]: {
+                        ...prev[parentId],
+                        isExpanded: true,
+                        childrenIds: [...(prev[parentId].childrenIds || []), newNode.id],
+                    }
+                }));
+            } else {
+                // Add root node
+                setNodesMap(prev => ({
+                    ...prev,
+                    [newNode.id]: newNode
+                }));
+                setRootIds(prevRoots => [...prevRoots, newNode.id]);
+            }
 
-            toast.success('node added')
+
+
+            toast.success("Node added")
         } catch (error: any) {
             console.error('error adding node', error)
             toast.error(error?.response?.data?.message || 'Failed to add node');
         }
     }
 
-    const deleteNodeRecursively = (nodes: TreeNodeType[], nodeId: string): TreeNodeType[] => {
-        return nodes
-            .filter((node) => node.id !== nodeId)
-            .map((node) => ({
-                ...node,
-                children: deleteNodeRecursively(node.children || [], nodeId),
-            }));
-    };
 
     const handleDeleteNode = async (nodeId: string) => {
         try {
+            setNodesMap(prev => {
+                const newMap = { ...prev };
+                const removeNodeRecursively = (id: string) => {
+                    const node = newMap[id];
+                    if (!node) return;
+                    node.childrenIds?.forEach(removeNodeRecursively);
+                    delete newMap[id];
+                };
+                removeNodeRecursively(nodeId);
+
+                Object.values(newMap).forEach(n => {
+                    if (n.childrenIds) {
+                        n.childrenIds = n.childrenIds.filter(cid => cid !== nodeId);
+                    }
+                });
+
+                return newMap;
+            });
+
             await deleteNodeApi(nodeId)
-            setNodes((prev) => deleteNodeRecursively(prev, nodeId));
+
             toast.success('node deleted')
         } catch (error: any) {
             console.error('error deleting node', error)
             toast.error(error?.response?.data?.message || 'Failed to delete node');
         }
     }
+
+
+    // Handle Close Adding Root
+    const handleCloseAddRoot = () => setIsAddingRoot(false)
+
+    // Handle Open Adding Root
+    const handleOpenAddRoot = () => setIsAddingRoot(true)
+
+    // const nestedNodes = buildTree(rootIds);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
@@ -118,20 +148,27 @@ const Home = () => {
 
                 {isLoading ? <div>loading...</div> :
                     <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/50">
-                        {nodes.length === 0 && !isAddingRoot && (
+                        {Object.keys(nodesMap).length === 0 && !isAddingRoot && (
                             <EmptyTree />
                         )}
                         <div className="space-y-2">
-                            {nodes.map((node) => (
-                                <TreeNode
-                                    key={node.id}
-                                    node={node}
-                                    onToggle={toggleNode}
-                                    onAdd={handleAddNode}
-                                    onDelete={handleDeleteNode}
-                                    level={0}
-                                />
-                            ))}
+                            {rootIds.map((rootId) => {
+                                const rootNode = nodesMap[rootId]
+                                if (rootNode) {
+                                    return (
+                                        <TreeNode
+                                            key={rootNode.id}
+                                            node={rootNode}
+                                            nodesMap={nodesMap}
+                                            onToggle={toggleNode}
+                                            onAdd={handleAddNode}
+                                            onDelete={handleDeleteNode}
+                                            level={0}
+                                        />
+                                    )
+                                }
+                            }
+                            )}
                         </div>
 
                         {isAddingRoot ? (
