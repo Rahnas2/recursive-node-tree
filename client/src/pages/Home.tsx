@@ -66,7 +66,7 @@ const Home = () => {
                 return {
                     ...node,
                     isExpanded: true,
-                    children: [...(node.children || []), { ...newNode, isExpanded: false }],
+                    children: [...(node.children || []), { ...newNode, children: [], isExpanded: false }],
                 };
             }
             return {
